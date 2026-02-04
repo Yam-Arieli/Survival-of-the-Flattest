@@ -1,4 +1,7 @@
 import random
+import pandas as pd
+import numpy as np
+import matplotlib.pyplot as plt
 
 def calculate_flatness(fitness, nei_fitness):
     """
@@ -93,3 +96,34 @@ def generate_sequences(n, length=80, min_distance=30):
         print(f"Warning: Could only find {len(sequences)} sequences with that distance constraint.")
         
     return sequences
+
+def get_fit_from_interpolation(df_exp: pd.DataFrame, df_curve: pd.DataFrame):
+    # 1. Sort the curve data (Crucial: interpolation requires sorted X values)
+    df_curve = df_curve.sort_values('expression')
+
+    # 2. Interpolate
+    # np.interp(x_to_predict, x_reference, y_reference)
+    return np.interp(
+        df_exp['expression'],              # The values you have
+        df_curve['expression'],        # The X axis of the curve
+        df_curve['fitness']            # The Y axis of the curve
+    )
+
+def get_fit_n_flattness(df_exp: pd.DataFrame, seq_num: int):
+    temp_df = df_exp[df_exp['group_id'] == seq_num]
+    this_seq_fit = temp_df['fitness'].iloc[0]
+    neighbors_fits = temp_df['fitness'].iloc[1:].tolist()
+    return this_seq_fit, calculate_flatness(this_seq_fit, neighbors_fits)
+
+def plot_fitness_vs_flatness(fit_flatt_list, power=4):
+    fitness_values = [item[0]**power for item in fit_flatt_list]
+    flatness_values = [item[1] for item in fit_flatt_list]
+    first_seq = fit_flatt_list[0]
+
+    plt.scatter(fitness_values, flatness_values, c='blue', alpha=0.5, label='all sequences')
+    plt.scatter([first_seq[0]**power], [first_seq[1]], c='red', alpha=1, label='first sequence')
+    plt.xlabel('Fitness')
+    plt.ylabel('Flatness')
+    plt.title('Fitness vs Flatness')
+    plt.legend()
+    plt.show()
